@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HCC Spin & Win</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: radial-gradient(circle at top, #3b2a1a, #120b06);
+  color: #f5e6c8;
+  text-align: center;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  width: 100%;
+  max-width: 400px;
+}
+
+.brand {
+  margin-bottom: 15px;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+
+.brand p {
+  margin: 5px 0 0;
+  font-size: 14px;
+  color: #d4b57a;
+}
+
+.wheel-container {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  margin: 25px auto 20px;
+}
+
+canvas {
+  border-radius: 50%;
+  box-shadow: 0 0 40px rgba(212,181,122,0.7);
+}
+
+.pointer {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-bottom: 32px solid #d4b57a;
+}
+
+button {
+  margin-top: 15px;
+  padding: 14px 38px;
+  font-size: 16px;
+  background: linear-gradient(135deg, #d4b57a, #8b6a3e);
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #120b06;
+}
+
+button:disabled {
+  background: #555;
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+#result {
+  margin-top: 18px;
+  font-size: 20px;
+  color: #ffd27d;
+}
+
+.whatsapp {
+  margin-top: 18px;
+}
+
+.whatsapp a {
+  color: #25D366;
+  font-size: 18px;
+  text-decoration: none;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+  <div class="brand">
+     
+    <h1 style="font-size: 40px;">HCC - Havana Cigar Club</h1>
+    <br>
+    <p style="font-size: 25px;">Light it , Live it & Love it 💨✨</p>
+  </div>
+  <br>
+  <br>
+  <hr>
+<br>
+  <div class="wheel-container">
+    <div class="pointer"></div>
+    <canvas id="wheel" width="320" height="320"></canvas>
+  </div>
+  <button id="spinBtn">SPIN THE WHEEL</button>
+
+  <div id="result"></div>
+
+  <div class="whatsapp">
+    <a href="https://wa.me/message/K6GX6JX7OJUYD1" target="_blank">
+      WhatsApp
+    </a>
+  </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const spinBtn = document.getElementById("spinBtn");
+
+const options = [
+  "Free Delivery for Lifetime",
+  "10% Discount",
+  "25% Discount",
+  "No Luck This Time",
+  "Access to HCC Guides",
+  "Free Cigar Pack"
+];
+
+const colors = [
+  "#6f4e37", // brown – cigar
+  "#8b6a3e", // gold brown
+  "#c9a24d", // gold
+  "#3b3b3b", // dark gray (no luck)
+  "#1f3d2b", // dark green (guides)
+  "#7a1e1e"  // wine red (free pack)
+];
+
+const center = canvas.width / 2;
+const radius = center;
+const arc = (2 * Math.PI) / options.length;
+
+let angle = 0;
+let spinning = false;
+
+function drawWheel() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for (let i = 0; i < options.length; i++) {
+    ctx.beginPath();
+    ctx.fillStyle = colors[i];
+    ctx.moveTo(center, center);
+    ctx.arc(
+      center,
+      center,
+      radius,
+      angle + i * arc,
+      angle + (i + 1) * arc
+    );
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(center, center);
+    ctx.rotate(angle + (i + 0.5) * arc);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 14px Arial";
+    ctx.fillText(options[i], radius / 2.2, 5);
+    ctx.restore();
+  }
+}
+
+// 🔥 VISUAL-BASED RESULT (1:1 with pointer)
+function getVisualResult() {
+  const pointerAngle = -Math.PI / 2; // top
+  let closestIndex = 0;
+  let smallestDiff = Infinity;
+
+  for (let i = 0; i < options.length; i++) {
+    const sliceCenter = angle + i * arc + arc / 2;
+
+    const diff = Math.abs(
+      Math.atan2(
+        Math.sin(sliceCenter - pointerAngle),
+        Math.cos(sliceCenter - pointerAngle)
+      )
+    );
+
+    if (diff < smallestDiff) {
+      smallestDiff = diff;
+      closestIndex = i;
+    }
+  }
+  return options[closestIndex];
+}
+
+spinBtn.onclick = () => {
+  if (spinning || localStorage.getItem("spinResult")) return;
+
+  spinning = true;
+  spinBtn.disabled = true;
+
+  const spinAmount = Math.random() * 3000 + 4000;
+  let rotated = 0;
+
+  const interval = setInterval(() => {
+    angle += 0.15;
+    rotated += 15;
+    drawWheel();
+
+    if (rotated >= spinAmount) {
+      clearInterval(interval);
+      spinning = false;
+
+      const result = getVisualResult();
+      localStorage.setItem("spinResult", result);
+
+      document.getElementById("result").innerText =
+        "🎉 Result: " + result;
+    }
+  }, 20);
+};
+
+// Load saved result (one spin only)
+const saved = localStorage.getItem("spinResult");
+if (saved) {
+  spinBtn.disabled = true;
+  document.getElementById("result").innerText =
+    "🎉 Result: " + saved;
+}
+
+drawWheel();
+</script>
+
+</body>
+</html>
